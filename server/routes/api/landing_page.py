@@ -353,23 +353,21 @@ def scale_series(numerator, denominator):
     return data
 
 
-def getI18nAllChildPlaces(raw_page_data):
+def get_i18n_all_child_places(raw_page_data):
     all_child_places = raw_page_data.get('allChildPlaces', {})
     all_dcids = []
     for place_type in list(all_child_places.keys()):
         for place in all_child_places[place_type]:
             all_dcids.append(place.get('dcid', ""))
-    i18n_names = place_api.get_i18n_name(all_dcids)
-    i18n_all_child_places = {}
+    i18n_names = place_api.get_i18n_name(all_dcids,
+                                         False)  # Don't resolve en-only names
     for place_type in list(all_child_places.keys()):
-        places = []
         for place in all_child_places[place_type]:
-            places.append({
-                'dcid': place.get('dcid'),
-                'name': i18n_names.get(place.get('dcid'), place.get('name'))
-            })
-        i18n_all_child_places[place_type] = places
-    return i18n_all_child_places
+            dcid = place.get('dcid')
+            i18n_name = i18n_names.get(dcid, '')
+            if i18n_name:
+                place['name'] = i18n_name
+    return all_child_places
 
 
 @bp.route('/data/<path:dcid>')
@@ -511,7 +509,7 @@ def data(dcid):
 
     response = {
         'pageChart': spec_and_stat,
-        'allChildPlaces': getI18nAllChildPlaces(raw_page_data),
+        'allChildPlaces': get_i18n_all_child_places(raw_page_data),
         'childPlacesType': raw_page_data.get('childPlacesType', ""),
         'childPlaces': raw_page_data.get('childPlaces', []),
         'parentPlaces': raw_page_data.get('parentPlaces', []),
